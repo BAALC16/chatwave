@@ -106,21 +106,34 @@ class WhatsAppService {
 			throw new Error("Phone number is required");
 		}
 
+		// Remove all non-numeric characters
 		const cleanNumber = phoneNumber.replace(/\D/g, "");
 
-		// Validate phone number
-		if (cleanNumber.length < 8) {
-			throw new Error("Invalid phone number length");
+		// Check minimum length (country code + number)
+		if (cleanNumber.length < 10) {
+			throw new Error(
+				"Invalid phone number length. Must be at least 10 digits including country code."
+			);
 		}
 
-		// Format number with country code
-		const countryCode = cleanNumber.startsWith("00")
-			? cleanNumber.substring(2)
-			: cleanNumber.startsWith(DEFAULT_COUNTRY_CODE)
-			? cleanNumber
-			: `${DEFAULT_COUNTRY_CODE}${cleanNumber}`;
+		// Check if number already has a country code (starts with a valid country prefix)
+		if (cleanNumber.match(/^[1-9]\d{0,3}\d{8,}$/)) {
+			// Number already has country code, just add suffix
+			return `${cleanNumber}${WHATSAPP_SUFFIX}`;
+		}
 
-		return `${countryCode}${WHATSAPP_SUFFIX}`;
+		// If number starts with 00 (international format)
+		if (cleanNumber.startsWith("00")) {
+			return `${cleanNumber.substring(2)}${WHATSAPP_SUFFIX}`;
+		}
+
+		// If number starts with + (remove it if present)
+		if (phoneNumber.startsWith("+")) {
+			return `${cleanNumber}${WHATSAPP_SUFFIX}`;
+		}
+
+		// No country code detected, add default
+		return `${DEFAULT_COUNTRY_CODE}${cleanNumber}${WHATSAPP_SUFFIX}`;
 	}
 
 	async sendMessage(clientId, phoneNumber, message) {
